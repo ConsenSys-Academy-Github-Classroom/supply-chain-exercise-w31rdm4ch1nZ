@@ -4,7 +4,7 @@ pragma solidity >=0.5.16 <0.9.0;
 contract SupplyChain {
 
   // <owner>
-  address payable public owner;
+  address public owner;
 
   // <skuCount>
   uint public skuCount;
@@ -81,10 +81,10 @@ contract SupplyChain {
 
   modifier forSale(uint _sku) {
     require(skuCount > 0, "there's no item yet");
+    require(items[_sku].buyer == address(0));
     _;
   }
 
-  
   modifier sold(uint _sku) {
     require(items[_sku].state == State.Sold, "not sold yet");
     _;
@@ -103,7 +103,7 @@ contract SupplyChain {
     // 1. Set the owner to the transaction sender
     owner = msg.sender;
     // 2. Initialize the sku count to 0. Question, is this necessary?
-    skuCount = 0;
+    //no, default to 0
   }
 
   function addItem(string memory _name, uint _price) public returns (bool) {
@@ -112,17 +112,16 @@ contract SupplyChain {
     // 3. Emit the appropriate event
     // 4. return true
 
-    // hint:
     items[skuCount] = Item({
     name: _name, 
     sku: skuCount, 
     price: _price, 
     state: State.ForSale, 
-    seller: items[skuCount].seller, 
-    buyer: items[skuCount].buyer
+    seller: msg.sender, 
+    buyer: address(0)
     });
-    
-    skuCount += 1;
+
+    skuCount ++;
     emit LogForSale(skuCount);
     return true;
   }
@@ -142,7 +141,7 @@ contract SupplyChain {
     //items[sku].seller
     //(items[sku].seller).call{value: msg.value}("");
     items[sku].seller.transfer(items[sku].price);
-    items[sku].buyer = owner;  
+    items[sku].buyer = msg.sender;  
     items[sku].state = State.Sold;
     emit LogSold(items[sku].sku);
   }
